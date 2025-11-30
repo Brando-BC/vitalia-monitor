@@ -1,0 +1,201 @@
+/* ==========================================================
+   ESTILO GENERAL — Modo oscuro moderno
+   ========================================================== */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Segoe UI", Helvetica, Arial, sans-serif;
+}
+
+body {
+  background: #0d1117;        /* gris oscuro profesional */
+  color: #e6edf3;             /* texto blanco suave */
+  padding-bottom: 50px;
+}
+
+/* ==========================================================
+   HEADER
+   ========================================================== */
+
+header {
+  text-align: center;
+  padding: 1.8rem 1rem;
+  background: #161b22;
+  border-bottom: 1px solid #30363d;
+}
+
+header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 0.3rem;
+}
+
+header p {
+  color: #8b949e;
+}
+
+/* ==========================================================
+   CONTENEDOR PRINCIPAL
+   ========================================================== */
+
+main {
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+/* ==========================================================
+   TARJETAS DE SIGNOS VITALES
+   ========================================================== */
+
+.cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.card {
+  flex: 1 1 260px;
+  background: #161b22;
+  border: 1px solid #30363d;
+  padding: 1.2rem;
+  border-radius: 12px;
+  transition: 0.2s;
+}
+
+.card:hover {
+  background: #1c2128;
+  transform: translateY(-3px);
+}
+
+.card h2 {
+  color: #8b949e;
+  font-size: 1rem;
+  margin-bottom: 0.6rem;
+}
+
+.card p {
+  font-size: 1.9rem;
+  font-weight: 700;
+}
+
+/* ==========================================================
+   DIAGNÓSTICO IA
+   ========================================================== */
+
+.diagnostico {
+  background: #161b22;
+  padding: 1.2rem;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+  border: 1px solid #30363d;
+}
+
+.diagnostico h2 {
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+  color: #8b949e;
+}
+
+/* ==========================================================
+   CHAT IA (estilo chatbot moderno)
+   ========================================================== */
+
+.chat {
+  background: #161b22;
+  padding: 1.2rem;
+  border-radius: 12px;
+  border: 1px solid #30363d;
+}
+
+.chat h2 {
+  margin-bottom: 0.6rem;
+  color: #8b949e;
+}
+
+#chat-window {
+  height: 260px;
+  overflow-y: auto;
+  padding: 0.8rem;
+  background: #0d1117;
+  border-radius: 10px;
+  border: 1px solid #30363d;
+  margin-bottom: 0.8rem;
+}
+
+/* Mensajes */
+.message {
+  margin-bottom: 0.7rem;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+/* Mensaje del usuario */
+.message.user {
+  text-align: right;
+}
+
+.message.user span {
+  display: inline-block;
+  background: #238636;           /* botón verde GitHub */
+  padding: 0.5rem 0.8rem;
+  border-radius: 12px;
+  color: white;
+}
+
+/* Mensaje del bot */
+.message.bot span {
+  display: inline-block;
+  background: #30363d;           /* gris metálico */
+  padding: 0.5rem 0.8rem;
+  border-radius: 12px;
+  color: white;
+}
+
+/* Input del chat */
+#chat-form {
+  display: flex;
+  gap: 0.5rem;
+}
+
+#chat-input {
+  flex: 1;
+  padding: 0.6rem 0.8rem;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  color: #e6edf3;
+}
+
+#chat-input:focus {
+  outline: none;
+  border-color: #58a6ff;
+}
+
+#chat-form button {
+  padding: 0.6rem 1rem;
+  border: none;
+  background: #238636;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  color: white;
+}
+
+#chat-form button:hover {
+  background: #2ea043;
+}
+
+/* ==========================================================
+   FOOTER
+   ========================================================== */
+
+footer {
+  text-align: center;
+  margin-top: 2.5rem;
+  color: #8b949e;
+  font-size: 0.8rem;
+}
