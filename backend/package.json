@@ -1,0 +1,17 @@
+{
+  "name": "vitalia-backend",
+  "version": "1.0.0",
+  "description": "Backend con Gemini para VitalIA",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "body-parser": "^1.20.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2"
+  }
+}
