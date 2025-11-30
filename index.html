@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VitalIA Monitor</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <h1>VitalIA Monitor</h1>
+    <p>Monitoreo inteligente de signos vitales</p>
+  </header>
+
+  <!-- TARJETAS DE SIGNOS VITALES -->
+  <main>
+
+    <section class="cards">
+      <div class="card">
+        <h2>Ritmo cardíaco (HR)</h2>
+        <p id="hr-value">-- bpm</p>
+      </div>
+
+      <div class="card">
+        <h2>Oxigenación (SpO₂)</h2>
+        <p id="spo2-value">-- %</p>
+      </div>
+
+      <div class="card">
+        <h2>Temperatura corporal</h2>
+        <p id="temp-value">-- °C</p>
+      </div>
+    </section>
+
+    <!-- DIAGNOSTICO IA -->
+    <section class="diagnostico">
+      <h2>Diagnóstico IA</h2>
+      <p id="diag-text">Esperando datos...</p>
+    </section>
+
+    <!-- CHAT -->
+    <section class="chat">
+      <h2>Chat IA (modo Alexa)</h2>
+
+      <div id="chat-window"></div>
+
+      <form id="chat-form">
+        <input id="chat-input" type="text" placeholder="Pregúntame algo..." autocomplete="off">
+        <button type="submit">Enviar</button>
+      </form>
+    </section>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer>
+    <p>VitalIA • ESP32 + MAX30102 + MLX90614 • 2025</p>
+  </footer>
+
+  <!-- JS -->
+  <script src="app.js"></script>
+  
+</body>
+</html>
