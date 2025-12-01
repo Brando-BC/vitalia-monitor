@@ -1,36 +1,42 @@
-import express from "express";
+// ======================================================
+// DEPENDENCIAS
+// ======================================================
+import express, { json } from "express";
 import cors from "cors";
-import bodyParser from "body-parser";
 import dotenv from "dotenv";
-
-// Cargar .env
-dotenv.config({ path: "./.env" });
-
-// SDK NUEVO (2025)
+import path from "path";
+import { fileURLToPath } from "url";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
+// ======================================================
+// CONFIGURAR .ENV
+// ======================================================
+dotenv.config();
+
+// ======================================================
+// CONFIGURAR RUTAS DE ARCHIVOS
+// ======================================================
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// ======================================================
+// INICIALIZAR APP
+// ======================================================
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(bodyParser.json());
+app.use(json({ limit: "1mb" }));
 
 // ======================================================
-// CONFIGURAR GEMINI — API 2025
+// IA GEMINI
 // ======================================================
-
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
-// 🔥 Modelo recomendado 2025 (rápido y estable)
-// Alternativas:
-// - "gemini-2.0-pro" para mayor inteligencia
-// - "gemini-2.0-flash" para máxima velocidad
 const modelo = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
 // ======================================================
-// VARIABLES PARA SIGNOS VITALES
+// VARIABLES INTERNAS — SIGNOS VITALES
 // ======================================================
-
 let lastVitals = {
   heart_rate: null,
   spo2: null,
@@ -41,7 +47,6 @@ let lastVitals = {
 // ======================================================
 // RECIBIR DATOS DEL ESP32
 // ======================================================
-
 app.post("/api/vitals", (req, res) => {
   const { heart_rate, spo2, temperature } = req.body;
 
@@ -52,14 +57,20 @@ app.post("/api/vitals", (req, res) => {
     timestamp: new Date().toISOString(),
   };
 
-  console.log("Nuevos signos vitales:", lastVitals);
+  console.log("🟢 Nuevos signos vitales recibidos:", lastVitals);
   res.json({ ok: true });
+});
+
+// ======================================================
+// ENVIAR DATOS AL FRONTEND
+// ======================================================
+app.get("/api/getVitals", (req, res) => {
+  res.json(lastVitals);
 });
 
 // ======================================================
 // GENERADOR AUTOMÁTICO DE DIAGNÓSTICO
 // ======================================================
-
 function generarDiagnostico(v) {
   if (!v.heart_rate) return "Aún no tengo suficientes datos del paciente.";
 
@@ -81,28 +92,22 @@ function generarDiagnostico(v) {
 }
 
 // ======================================================
-// CHAT CON IA REAL (GEMINI 2025)
+// CHAT CON IA
 // ======================================================
-
 app.post("/api/chat", async (req, res) => {
   const { message } = req.body;
 
   const diagnostico = generarDiagnostico(lastVitals);
 
   const prompt = `
-Eres VitalIA, una IA médica moderna (2025) que responde con claridad,
-calidez y precisión, similar a Alexa pero enfocada en salud.
-
-Datos actuales del paciente:
+Eres VitalIA (Brock), un asistente de salud moderno.
+Datos actuales:
 - Ritmo cardíaco: ${lastVitals.heart_rate}
 - SpO2: ${lastVitals.spo2}
 - Temperatura: ${lastVitals.temperature}
 
-Diagnóstico automático basado en parámetros médicos:
+Diagnóstico automático:
 ${diagnostico}
-
-Si la pregunta NO es de salud:
-Responde como un asistente amigable.
 
 Pregunta del usuario:
 ${message}
@@ -114,15 +119,24 @@ ${message}
     res.json({ reply: text });
 
   } catch (error) {
-    console.error("Error con Gemini:", error);
-    res.json({ reply: "Error al usar IA real. Revisa tu API Key o el modelo." });
+    console.error("❌ Error con Gemini:", error);
+    res.json({ reply: "Error al usar IA. Revisa API KEY." });
   }
+});
+
+// ======================================================
+// SERVIR FRONTEND ESTÁTICO PARA RENDER
+// ======================================================
+app.use(express.static(path.join(__dirname)));
+
+// Ruta por defecto → index.html
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "index.html"));
 });
 
 // ======================================================
 // INICIAR SERVIDOR
 // ======================================================
-
 app.listen(PORT, () => {
-  console.log("Servidor IA (Gemini 2025) escuchando en puerto", PORT);
+  console.log(`🚀 Servidor VitalIA escuchando en puerto ${PORT}`);
 });

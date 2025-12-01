@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VitalIA Monitor</title>
   <link rel="stylesheet" href="style.css">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
@@ -12,38 +15,58 @@
   <!-- HEADER -->
   <header>
     <h1>VitalIA Monitor</h1>
-    <p>Monitoreo inteligente de signos vitales</p>
+    <p>Monitoreo inteligente de signos vitales en tiempo real</p>
   </header>
 
-  <!-- TARJETAS DE SIGNOS VITALES -->
   <main>
 
+    <!-- TARJETAS DE SIGNOS -->
     <section class="cards">
-      <div class="card">
-        <h2>Ritmo cardíaco (HR)</h2>
+      <div class="card" id="card-hr">
+        <h2>Ritmo cardíaco</h2>
         <p id="hr-value">-- bpm</p>
       </div>
 
-      <div class="card">
-        <h2>Oxigenación (SpO₂)</h2>
+      <div class="card" id="card-spo2">
+        <h2>Oxigenación SpO₂</h2>
         <p id="spo2-value">-- %</p>
       </div>
 
-      <div class="card">
+      <div class="card" id="card-temp">
         <h2>Temperatura corporal</h2>
         <p id="temp-value">-- °C</p>
       </div>
     </section>
 
-    <!-- DIAGNOSTICO IA -->
+    <!-- GRAFICAS -->
+    <section class="charts">
+      <h2>Gráficas en tiempo real</h2>
+
+      <canvas id="chartHR"></canvas>
+      <canvas id="chartSPO2"></canvas>
+      <canvas id="chartTEMP"></canvas>
+    </section>
+
+    <!-- DIAGNOSTICO AUTOMATICO -->
     <section class="diagnostico">
       <h2>Diagnóstico IA</h2>
       <p id="diag-text">Esperando datos...</p>
     </section>
 
+    <!-- ASISTENTE BROCK -->
+    <section class="asistente">
+      <h2>Asistente Brock</h2>
+
+      <div class="asistente-box">
+        <p id="asistente-estado">Brock está inactivo</p>
+      </div>
+
+      <button id="activar-voz" class="btn-voz">🎤 Activar Brock</button>
+    </section>
+
     <!-- CHAT -->
     <section class="chat">
-      <h2>Chat IA (modo Alexa)</h2>
+      <h2>Chat IA</h2>
 
       <div id="chat-window"></div>
 
@@ -62,6 +85,6 @@
 
   <!-- JS -->
   <script src="app.js"></script>
-  
+
 </body>
 </html>

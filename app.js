@@ -1,69 +1,156 @@
 /* ==========================================================
-   VitalIA — Datos random para pruebas
+   CONFIGURACIÓN GENERAL
    ========================================================== */
 
-// Función para simular signos vitales realistas
-function generarSignosRandom() {
-  return {
-    hr: Math.floor(Math.random() * (110 - 60 + 1)) + 60,      // 60 a 110 bpm
-    spo2: Math.floor(Math.random() * (99 - 94 + 1)) + 94,     // 94% a 99%
-    temp: (Math.random() * (37.8 - 36.0) + 36.0).toFixed(1)    // 36.0 a 37.8 °C
-  };
+console.log("VitalIA cargado correctamente...");
+
+/* ==========================================================
+   OBTENER DATOS DEL BACKEND /api/getVitals
+   ========================================================== */
+
+async function obtenerDatos() {
+  try {
+    const res = await fetch("/api/getVitals");
+    return await res.json();
+  } catch (e) {
+    console.error("Error obteniendo datos:", e);
+    return null;
+  }
 }
 
 /* ==========================================================
-   IA DE DIAGNÓSTICO (Simulada)
+   ACTUALIZAR TARJETAS
    ========================================================== */
 
-function diagnosticoIA(hr, spo2, temp) {
-  let mensajes = [];
+function actualizarTarjetas(v) {
+  if (!v || !v.heart_rate) return;
 
-  // Diagnóstico HR
-  if (hr < 60) mensajes.push("El ritmo cardíaco está ligeramente bajo.");
-  else if (hr <= 100) mensajes.push("El ritmo cardíaco está dentro de lo normal.");
-  else mensajes.push("El ritmo cardíaco está un poco elevado, revisa si estás nervioso o en actividad.");
+  document.getElementById("hr-value").textContent = v.heart_rate + " bpm";
+  document.getElementById("spo2-value").textContent = v.spo2 + " %";
+  document.getElementById("temp-value").textContent = v.temperature + " °C";
 
-  // Diagnóstico SpO2
-  if (spo2 >= 97) mensajes.push("Tu oxigenación es excelente.");
-  else if (spo2 >= 94) mensajes.push("Tu oxigenación es aceptable.");
-  else mensajes.push("Oxigenación baja, deberías observar si sientes dificultad para respirar.");
+  // Colores dinámicos
+  const c_hr = document.getElementById("card-hr");
+  const c_spo2 = document.getElementById("card-spo2");
+  const c_temp = document.getElementById("card-temp");
 
-  // Diagnóstico temperatura
-  if (temp < 37.5) mensajes.push("Tu temperatura corporal es normal.");
-  else if (temp < 38.0) mensajes.push("Tienes febrícula (leve aumento de temperatura).");
-  else mensajes.push("Presentas fiebre, observa otros síntomas.");
+  // Reset clases
+  [c_hr, c_spo2, c_temp].forEach(c => {
+    c.classList.remove("estado-verde", "estado-amarillo", "estado-rojo");
+  });
 
-  return mensajes.join(" ");
+  // HR
+  if (v.heart_rate < 60) c_hr.classList.add("estado-amarillo");
+  else if (v.heart_rate <= 100) c_hr.classList.add("estado-verde");
+  else c_hr.classList.add("estado-rojo");
+
+  // SpO2
+  if (v.spo2 >= 97) c_spo2.classList.add("estado-verde");
+  else if (v.spo2 >= 94) c_spo2.classList.add("estado-amarillo");
+  else c_spo2.classList.add("estado-rojo");
+
+  // Temperatura
+  if (v.temperature < 37.5) c_temp.classList.add("estado-verde");
+  else if (v.temperature < 38) c_temp.classList.add("estado-amarillo");
+  else c_temp.classList.add("estado-rojo");
 }
 
 /* ==========================================================
-   ACTUALIZACIÓN AUTOMÁTICA DE TARJETAS
+   ACTUALIZAR DIAGNÓSTICO IA (AUTOMÁTICO)
    ========================================================== */
 
-function actualizarValores() {
-  const datos = generarSignosRandom();
+async function actualizarDiagnostico(v) {
+  if (!v || !v.heart_rate) return;
 
-  document.getElementById("hr-value").textContent = datos.hr + " bpm";
-  document.getElementById("spo2-value").textContent = datos.spo2 + " %";
-  document.getElementById("temp-value").textContent = datos.temp + " °C";
+  const diag = [];
 
-  const diag = diagnosticoIA(datos.hr, datos.spo2, parseFloat(datos.temp));
-  document.getElementById("diag-text").textContent = diag;
+  if (v.heart_rate < 60) diag.push("Ritmo cardíaco bajo.");
+  else if (v.heart_rate <= 100) diag.push("Ritmo cardíaco normal.");
+  else diag.push("Ritmo cardíaco elevado.");
+
+  if (v.spo2 >= 97) diag.push("Oxigenación excelente.");
+  else if (v.spo2 >= 94) diag.push("Oxigenación aceptable.");
+  else diag.push("Oxigenación baja.");
+
+  if (v.temperature < 37.5) diag.push("Temperatura normal.");
+  else if (v.temperature < 38) diag.push("Febrícula.");
+  else diag.push("Fiebre detectada.");
+
+  document.getElementById("diag-text").textContent = diag.join(" ");
 }
 
-// Ejecutar al inicio y luego cada 3 segundos
-actualizarValores();
-setInterval(actualizarValores, 3000);
+/* ==========================================================
+   GRAFICAS Chart.js
+   ========================================================== */
+
+let datosHR = [];
+let datosSPO2 = [];
+let datosTEMP = [];
+
+const limites = 40; // puntos visibles
+
+function crearGrafico(id, label, color) {
+  return new Chart(document.getElementById(id), {
+    type: "line",
+    data: {
+      labels: [],
+      datasets: [{
+        label,
+        data: [],
+        borderColor: color,
+        borderWidth: 2,
+        pointRadius: 0
+      }]
+    },
+    options: {
+      scales: {
+        x: { display: false },
+        y: { beginAtZero: false }
+      }
+    }
+  });
+}
+
+const gHR = crearGrafico("chartHR", "Ritmo cardíaco", "#ff6b6b");
+const gSPO2 = crearGrafico("chartSPO2", "SpO₂", "#4fc3f7");
+const gTEMP = crearGrafico("chartTEMP", "Temperatura", "#f6c343");
+
+// Añadir un punto
+function actualizarGrafico(grafico, arreglo, nuevoValor) {
+  arreglo.push(nuevoValor);
+  if (arreglo.length > limites) arreglo.shift();
+
+  grafico.data.labels = arreglo.map((_, i) => i);
+  grafico.data.datasets[0].data = arreglo;
+  grafico.update();
+}
 
 /* ==========================================================
-   CHAT IA — Responde como Alexa (Simulado)
+   LOOP PRINCIPAL — Actualización cada 2s
+   ========================================================== */
+
+async function loop() {
+  const v = await obtenerDatos();
+  if (!v) return;
+
+  actualizarTarjetas(v);
+  actualizarDiagnostico(v);
+
+  actualizarGrafico(gHR, datosHR, v.heart_rate);
+  actualizarGrafico(gSPO2, datosSPO2, v.spo2);
+  actualizarGrafico(gTEMP, datosTEMP, v.temperature);
+}
+
+setInterval(loop, 2000);
+
+/* ==========================================================
+   CHAT IA REAL — /api/chat
    ========================================================== */
 
 const chatWindow = document.getElementById("chat-window");
 const chatForm = document.getElementById("chat-form");
 const chatInput = document.getElementById("chat-input");
 
-// Agregar mensajes al chat
 function addMessage(text, from = "bot") {
   const div = document.createElement("div");
   div.classList.add("message", from);
@@ -76,46 +163,88 @@ function addMessage(text, from = "bot") {
   chatWindow.scrollTop = chatWindow.scrollHeight;
 }
 
-// Respuestas IA simuladas
-function respuestaIA(texto) {
-  const mensaje = texto.toLowerCase();
-
-  // Chistes
-  if (mensaje.includes("chiste")) {
-    return "Claro 😄: ¿Qué le dice un bit al otro bit? — Nos vemos en el bus.";
-  }
-
-  // Saludos
-  if (mensaje.includes("hola") || mensaje.includes("buenas")) {
-    return "¡Hola! Estoy aquí para ayudarte. Puedes preguntarme sobre tu salud o cualquier otra cosa.";
-  }
-
-  // Preguntas generales
-  if (mensaje.includes("cómo estás") || mensaje.includes("como estas")) {
-    return "Estoy funcionando al 100% ⚡. ¿Y tú cómo te sientes hoy?";
-  }
-
-  // Pregunta sobre signos vitales
-  if (mensaje.includes("salud") || mensaje.includes("signos") || mensaje.includes("cardiaco")) {
-    return "Mis sensores virtuales dicen que tus signos vitales se están actualizando cada 3 segundos. Todo está bajo control 😎.";
-  }
-
-  // Default
-  return "Interesante 🤔. Puedo contarte un chiste, hablar contigo o darte una idea general de tu salud. ¡Pregúntame algo!";
-}
-
-// Manejo del chat
-chatForm.addEventListener("submit", (e) => {
+chatForm.addEventListener("submit", async (e) => {
   e.preventDefault();
-  const texto = chatInput.value.trim();
-  if (!texto) return;
 
-  addMessage(texto, "user");       // mostrar mensaje del usuario
+  const msg = chatInput.value.trim();
+  if (!msg) return;
+
+  addMessage(msg, "user");
   chatInput.value = "";
 
-  const respuesta = respuestaIA(texto);
-  setTimeout(() => addMessage(respuesta, "bot"), 400);   // pequeña pausa estilo Alexa
+  const res = await fetch("/api/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message: msg })
+  });
+
+  const data = await res.json();
+  addMessage(data.reply, "bot");
+
+  hablar(data.reply);
 });
 
-// Mensaje inicial
-addMessage("Hola 👋, soy la IA de VitalIA. Puedo hablar contigo y darte una idea general de tus signos vitales.");
+/* ==========================================================
+   ASISTENTE BROCK — Voz
+   ========================================================== */
+
+const estadoElem = document.getElementById("asistente-estado");
+const botonVoz = document.getElementById("activar-voz");
+
+let reconocimiento;
+let escuchando = false;
+
+// Voz masculina
+function hablar(texto) {
+  const voz = new SpeechSynthesisUtterance(texto);
+  voz.lang = "es-ES";
+  speechSynthesis.speak(voz);
+}
+
+function iniciarReconocimiento() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  reconocimiento = new SpeechRecognition();
+  reconocimiento.lang = "es-ES";
+
+  reconocimiento.onresult = (event) => {
+    const texto = event.results[0][0].transcript.toLowerCase();
+    addMessage("🎤 " + texto, "user");
+
+    if (texto.includes("ok brock") || texto.includes("hey brock")) {
+      hablar("Estoy escuchando.");
+      estadoElem.textContent = "Brock escuchando...";
+      return;
+    }
+
+    enviarPregunta(texto);
+  };
+
+  reconocimiento.onend = () => {
+    if (escuchando) reconocimiento.start();
+  };
+}
+
+async function enviarPregunta(texto) {
+  const res = await fetch("/api/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message: texto })
+  });
+
+  const data = await res.json();
+  addMessage(data.reply, "bot");
+  hablar(data.reply);
+}
+
+botonVoz.addEventListener("click", () => {
+  if (!escuchando) {
+    escuchando = true;
+    estadoElem.textContent = "Brock está escuchando...";
+    iniciarReconocimiento();
+    reconocimiento.start();
+  } else {
+    escuchando = false;
+    estadoElem.textContent = "Brock está inactivo";
+    reconocimiento.stop();
+  }
+});

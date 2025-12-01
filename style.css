@@ -10,8 +10,8 @@
 }
 
 body {
-  background: #0d1117;        /* gris oscuro profesional */
-  color: #e6edf3;             /* texto blanco suave */
+  background: #0d1117;
+  color: #e6edf3;
   padding-bottom: 50px;
 }
 
@@ -82,6 +82,47 @@ main {
   font-weight: 700;
 }
 
+/* Estados dinámicos (verde, amarillo, rojo) */
+.estado-verde {
+  border-color: #238636 !important;
+  color: #2ea043 !important;
+}
+
+.estado-amarillo {
+  border-color: #f0ad4e !important;
+  color: #e8b451 !important;
+}
+
+.estado-rojo {
+  border-color: #d73a49 !important;
+  color: #ff6b6b !important;
+}
+
+/* ==========================================================
+   GRAFICAS - Chart.js
+   ========================================================== */
+
+.charts {
+  background: #161b22;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #30363d;
+  margin-bottom: 2rem;
+}
+
+.charts h2 {
+  margin-bottom: 1rem;
+  color: #8b949e;
+  text-align: center;
+}
+
+canvas {
+  margin: 1.2rem 0;
+  background: #0d1117;
+  padding: 10px;
+  border-radius: 10px;
+}
+
 /* ==========================================================
    DIAGNÓSTICO IA
    ========================================================== */
@@ -98,6 +139,51 @@ main {
   margin-bottom: 0.5rem;
   font-size: 1.1rem;
   color: #8b949e;
+}
+
+/* ==========================================================
+   ASISTENTE BROCK
+   ========================================================== */
+
+.asistente {
+  background: #161b22;
+  padding: 1.2rem;
+  border-radius: 12px;
+  border: 1px solid #30363d;
+  margin-bottom: 2rem;
+}
+
+.asistente h2 {
+  margin-bottom: 0.8rem;
+  color: #8b949e;
+}
+
+.asistente-box {
+  background: #0d1117;
+  border-radius: 10px;
+  border: 1px solid #30363d;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  color: #c9d1d9;
+}
+
+.btn-voz {
+  width: 100%;
+  padding: 0.8rem;
+  border: none;
+  background: #238636;
+  border-radius: 10px;
+  color: white;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.btn-voz:hover {
+  background: #2ea043;
 }
 
 /* ==========================================================
@@ -140,7 +226,7 @@ main {
 
 .message.user span {
   display: inline-block;
-  background: #238636;           /* botón verde GitHub */
+  background: #238636;
   padding: 0.5rem 0.8rem;
   border-radius: 12px;
   color: white;
@@ -149,7 +235,7 @@ main {
 /* Mensaje del bot */
 .message.bot span {
   display: inline-block;
-  background: #30363d;           /* gris metálico */
+  background: #30363d;
   padding: 0.5rem 0.8rem;
   border-radius: 12px;
   color: white;
