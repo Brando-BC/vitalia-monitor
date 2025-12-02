@@ -1,13 +1,14 @@
 /* ==========================================================
-   VITALIA MONITOR – BROCK AI 2025 (VERSIÓN ESTABLE FINAL)
+   VITALIA MONITOR – APP.JS (BROCK IA 2025)
    ========================================================== */
 
-console.log("VitalIA + Brock inicializado correctamente...");
+console.log("VitalIA + Brock cargado correctamente...");
 
 /* ==========================================================
    UTILIDADES
    ========================================================== */
 
+// Limpia texto para que Brock no lea símbolos
 function cleanText(text) {
   if (!text) return "";
   return text.replace(/[*_`>#-]/g, " ").replace(/\s+/g, " ").trim();
@@ -34,11 +35,11 @@ async function obtenerDatos() {
 function actualizarTarjetas(v) {
   if (!v || !v.heart_rate) return;
 
-  document.getElementById("hr-value").textContent = `${v.heart_rate} bpm`;
+  document.getElementById("hr-value").textContent   = `${v.heart_rate} bpm`;
   document.getElementById("spo2-value").textContent = `${v.spo2} %`;
   document.getElementById("temp-value").textContent = `${v.temperature.toFixed(1)} °C`;
 
-  const c_hr = document.getElementById("card-hr");
+  const c_hr   = document.getElementById("card-hr");
   const c_spo2 = document.getElementById("card-spo2");
   const c_temp = document.getElementById("card-temp");
 
@@ -51,12 +52,12 @@ function actualizarTarjetas(v) {
   else if (v.heart_rate <= 100) c_hr.classList.add("estado-verde");
   else c_hr.classList.add("estado-rojo");
 
-  // SpO2 (ajustado 3276 msnm)
+  // SpO₂ ajustado a 3276 msnm
   if (v.spo2 >= 87 && v.spo2 <= 96) c_spo2.classList.add("estado-verde");
   else if (v.spo2 >= 83 && v.spo2 <= 86) c_spo2.classList.add("estado-amarillo");
   else c_spo2.classList.add("estado-rojo");
 
-  // Temp
+  // Temperatura
   if (v.temperature >= 36.0 && v.temperature <= 37.0) c_temp.classList.add("estado-verde");
   else if (v.temperature <= 38.0) c_temp.classList.add("estado-amarillo");
   else c_temp.classList.add("estado-rojo");
@@ -67,22 +68,25 @@ function actualizarTarjetas(v) {
    ========================================================== */
 
 function generarDiagnosticoLocal(v) {
-  if (!v) return "Aún no tengo suficientes datos para evaluar.";
+  if (!v) return "Aún no tengo suficientes datos.";
 
   let msg = [];
 
-  if (v.heart_rate < 60) msg.push("El ritmo cardíaco está bajo.");
-  else if (v.heart_rate <= 100) msg.push("El ritmo cardíaco está dentro de lo normal.");
+  // HR
+  if (v.heart_rate < 60) msg.push("El ritmo cardíaco está por debajo de lo normal.");
+  else if (v.heart_rate <= 100) msg.push("El ritmo cardíaco está bien.");
   else msg.push("El ritmo cardíaco está elevado.");
 
+  // SpO₂ ajustado
   if (v.spo2 >= 87) msg.push("La oxigenación es normal para esta altitud.");
-  else if (v.spo2 >= 83) msg.push("Hay hipoxia leve.");
+  else if (v.spo2 >= 83) msg.push("Hay signos de hipoxia leve.");
   else if (v.spo2 >= 79) msg.push("Hay hipoxia moderada.");
-  else msg.push("Hipoxia severa detectada.");
+  else msg.push("Oxigenación muy baja, posible hipoxia severa.");
 
+  // Temperatura
   const t = v.temperature;
-  if (t >= 36.0 && t <= 37.0) msg.push("Temperatura corporal normal.");
-  else if (t <= 38.0) msg.push("Febrícula.");
+  if (t >= 36.0 && t <= 37.0) msg.push("Temperatura normal.");
+  else if (t <= 38.0) msg.push("Hay febrícula.");
   else if (t <= 38.4) msg.push("Fiebre leve.");
   else if (t <= 39.0) msg.push("Fiebre moderada.");
   else msg.push("Fiebre alta.");
@@ -93,58 +97,86 @@ function generarDiagnosticoLocal(v) {
 function actualizarDiagnosticoTexto(v) {
   document.getElementById("diag-text").textContent = generarDiagnosticoLocal(v);
 }
-
 /* ==========================================================
-   GRAFICAS
+   GRÁFICAS (Chart.js)
    ========================================================== */
 
-let datosHR = [], datosSpO2 = [], datosTemp = [];
-const LIMIT = 40;
+let datosHR = [];
+let datosSpO2 = [];
+let datosTemp = [];
+const LIMIT = 40; // puntos visibles en pantalla
 
 function crearGrafico(id, color) {
   const ctx = document.getElementById(id).getContext("2d");
+
   return new Chart(ctx, {
     type: "line",
-    data: { labels: [], datasets: [{ data: [], borderColor: color, borderWidth: 2, pointRadius: 0 }] },
-    options: { animation: false, scales: { x: { display: false } } }
+    data: {
+      labels: [],
+      datasets: [
+        {
+          data: [],
+          borderColor: color,
+          borderWidth: 2,
+          pointRadius: 0,
+          tension: 0.25
+        }
+      ]
+    },
+    options: {
+      animation: false,
+      scales: {
+        x: { display: false },
+        y: {
+          beginAtZero: false,
+          grid: { color: "#222" },
+          ticks: { color: "#999" }
+        }
+      },
+      plugins: {
+        legend: { display: false }
+      }
+    }
   });
 }
 
-const gHR = crearGrafico("chartHR", "#ff6b6b");
+const gHR   = crearGrafico("chartHR", "#ff6b6b");
 const gSpO2 = crearGrafico("chartSPO2", "#4fc3f7");
 const gTemp = crearGrafico("chartTEMP", "#f6c343");
 
 function updateChart(g, arr, val) {
   arr.push(val);
   if (arr.length > LIMIT) arr.shift();
+
   g.data.labels = arr.map((_, i) => i);
   g.data.datasets[0].data = arr;
   g.update();
 }
 
 /* ==========================================================
-   LOOP PRINCIPAL
+   LOOP PRINCIPAL — Actualiza cada 2 segundos
    ========================================================== */
 
 async function loop() {
-  const v = await obtenerDatos();
-  if (!v) return;
+  const data = await obtenerDatos();
+  if (!data) return;
 
-  actualizarTarjetas(v);
-  actualizarDiagnosticoTexto(v);
-  updateChart(gHR, datosHR, v.heart_rate);
-  updateChart(gSpO2, datosSpO2, v.spo2);
-  updateChart(gTemp, datosTemp, v.temperature);
+  actualizarTarjetas(data);
+  actualizarDiagnosticoTexto(data);
+
+  updateChart(gHR,   datosHR,   data.heart_rate);
+  updateChart(gSpO2, datosSpO2, data.spo2);
+  updateChart(gTemp, datosTemp, data.temperature);
 }
 
 setInterval(loop, 2000);
 
 /* ==========================================================
-   CHAT IA
+   CHAT IA (Texto)
    ========================================================== */
 
 const chatWindow = document.getElementById("chat-window");
-const chatInput = document.getElementById("chat-input");
+const chatInput  = document.getElementById("chat-input");
 
 function addMessage(text, from = "bot") {
   const div = document.createElement("div");
@@ -161,16 +193,19 @@ async function enviarAIA(texto) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message: texto })
     });
+
     const data = await res.json();
     const reply = cleanText(data.reply);
+
     addMessage(reply, "bot");
-    hablar(reply);
+    hablar(reply);   // Habla la respuesta
+
   } catch (e) {
-    addMessage("Error de conexión con Brock.", "bot");
+    addMessage("Error al contactar a Brock.", "bot");
   }
 }
 
-document.getElementById("chat-form").addEventListener("submit", e => {
+document.getElementById("chat-form").addEventListener("submit", (e) => {
   e.preventDefault();
 
   const msg = chatInput.value.trim();
@@ -178,45 +213,31 @@ document.getElementById("chat-form").addEventListener("submit", e => {
 
   addMessage(msg, "user");
   chatInput.value = "";
+
   enviarAIA(msg);
 });
-
 /* ==========================================================
-   ELEMENTOS DEL ASISTENTE (JARVIS)
-   ========================================================== */
-
-const estadoElem = document.getElementById("asistente-estado");
-const botonVoz = document.getElementById("activar-voz");
-const asistenteBox = document.getElementById("asistente-box");
-const jarvisAnim = document.getElementById("jarvis-anim");
-
-function setEstado(texto, clase) {
-  estadoElem.textContent = texto;
-
-  asistenteBox.classList.remove(
-    "asistente-escuchando",
-    "asistente-hablando",
-    "asistente-inactivo"
-  );
-
-  asistenteBox.classList.add(clase);
-}
-
-/* ==========================================================
-   TTS – VOZ MASCULINA
+   TTS (HABLAR) — Voz masculina natural
    ========================================================== */
 
 let speaking = false;
 
 function vozMasculina() {
-  const voces = speechSynthesis.getVoices();
-  const male = voces.find(v =>
+  const voices = speechSynthesis.getVoices();
+
+  // Prioridad: voces masculinas
+  const male = voices.find(v =>
     v.lang.startsWith("es") &&
-    (v.name.toLowerCase().includes("hombre") ||
-     v.name.toLowerCase().includes("miguel") ||
-     v.name.toLowerCase().includes("carlos"))
+    (
+      v.name.toLowerCase().includes("male")   ||
+      v.name.toLowerCase().includes("hombre") ||
+      v.name.toLowerCase().includes("miguel") ||
+      v.name.toLowerCase().includes("carlos") ||
+      v.name.toLowerCase().includes("jorge")
+    )
   );
-  return male || voces.find(v => v.lang.startsWith("es")) || voces[0];
+
+  return male || voices.find(v => v.lang.startsWith("es")) || voices[0];
 }
 
 function hablar(texto) {
@@ -225,27 +246,29 @@ function hablar(texto) {
 
   if (escuchando && reconocimiento) reconocimiento.stop();
 
-  setEstado("Brock está hablando…", "asistente-hablando");
+  // Activar animación Jarvis
+  document.getElementById("jarvis-anim").style.opacity = 1;
+  document.getElementById("asistente-estado").textContent = "Brock está hablando…";
 
   const u = new SpeechSynthesisUtterance(cleanText(texto));
-  u.lang = "es-ES";
-  u.pitch = 0.92;
-  u.rate = 1.05;
+  u.lang  = "es-ES";
+  u.pitch = 0.95;
+  u.rate  = 1.03;
   u.voice = vozMasculina();
 
   u.onend = () => {
     speaking = false;
-    if (escuchando) {
-      setEstado("Brock está escuchando…", "asistente-escuchando");
-      setTimeout(() => reconocimiento.start(), 200);
-    }
+    document.getElementById("jarvis-anim").style.opacity = 0;
+    document.getElementById("asistente-estado").textContent = "Brock está escuchando…";
+
+    if (escuchando) setTimeout(() => reconocimiento.start(), 200);
   };
 
   speechSynthesis.speak(u);
 }
 
 /* ==========================================================
-   STT – RECONOCIMIENTO DE VOZ
+   STT — Reconocimiento de voz "OK BROCK"
    ========================================================== */
 
 let reconocimiento = null;
@@ -259,24 +282,36 @@ function initRecon() {
   reconocimiento.interimResults = false;
 
   reconocimiento.onstart = () => {
-    setEstado("Brock está escuchando… (di OK BROCK)", "asistente-escuchando");
+    document.getElementById("asistente-estado").textContent =
+      "Brock está escuchando… (di OK BROCK)";
+    document.getElementById("jarvis-anim").style.opacity = 0.3;
   };
 
-  reconocimiento.onerror = e => console.warn("Error STT:", e);
+  reconocimiento.onerror = (e) => {
+    console.log("Reconocimiento error:", e);
+  };
 
   reconocimiento.onend = () => {
     if (escuchando && !speaking) reconocimiento.start();
   };
 
-  reconocimiento.onresult = ev => {
+  reconocimiento.onresult = (ev) => {
     if (!escuchando) return;
-    if (speaking) return;
+    if (speaking) return; // Anti-eco
 
     const text = ev.results[ev.results.length - 1][0].transcript.toLowerCase().trim();
     console.log("Oído:", text);
 
+    // Si no menciona "Brock", ignorar
     if (!text.includes("brock")) return;
 
+    // Si dice solo "ok brock"
+    if (text === "ok brock" || text === "oye brock" || text === "hey brock") {
+      hablar("Aquí estoy, ¿qué necesitas?");
+      return;
+    }
+
+    // Eliminalo del texto final
     let comando = text
       .replace("ok brock", "")
       .replace("oye brock", "")
@@ -284,45 +319,80 @@ function initRecon() {
       .replace("brock", "")
       .trim();
 
-    if (comando.length === 0) {
-      hablar("Aquí estoy, ¿qué necesitas?");
-      return;
-    }
-
     addMessage(comando, "user");
     enviarAIA(comando);
   };
 }
 
 /* ==========================================================
-   ACTIVAR / DESACTIVAR
+   ACTIVAR / DESACTIVAR ESCUCHA
    ========================================================== */
+
+const botonVoz = document.getElementById("activar-voz");
 
 function activarEscucha() {
   escuchando = true;
   initRecon();
   reconocimiento.start();
+
   botonVoz.textContent = "🛑 Desactivar Brock";
-  setEstado("Brock está escuchando…", "asistente-escuchando");
+  document.getElementById("asistente-estado").textContent = "Brock está escuchando…";
+  document.getElementById("jarvis-anim").style.opacity = 0.3;
 }
 
 function desactivarEscucha() {
   escuchando = false;
+
   if (reconocimiento) reconocimiento.stop();
   speechSynthesis.cancel();
+
   botonVoz.textContent = "🎤 Activar Brock";
-  setEstado("Brock está inactivo", "asistente-inactivo");
+  document.getElementById("asistente-estado").textContent = "Brock está inactivo";
+  document.getElementById("jarvis-anim").style.opacity = 0;
 }
 
 botonVoz.addEventListener("click", () => {
   escuchando ? desactivarEscucha() : activarEscucha();
 });
-
 /* ==========================================================
-   AUTO ACTIVACIÓN
+   AUTO ACTIVACIÓN AL CARGAR
    ========================================================== */
 
 window.addEventListener("load", () => {
+  // Cargar voces
+  speechSynthesis.onvoiceschanged = () => {
+    vozMasculina();
+  };
+
+  // Activar escucha automática
   activarEscucha();
-  speechSynthesis.onvoiceschanged = () => vozMasculina();
+
+  // Estado inicial Jarvis
+  document.getElementById("jarvis-anim").style.transition = "0.3s";
+  document.getElementById("jarvis-anim").style.opacity = 0.3;
 });
+
+/* ==========================================================
+   ANIMACIÓN JARVIS (CSS DINÁMICO)
+   ========================================================== */
+
+const jarvisCSS = document.createElement("style");
+jarvisCSS.innerHTML = `
+  .jarvis-circles {
+    width: 40px;
+    height: 40px;
+    margin-left: auto;
+    border-radius: 50%;
+    border: 3px solid #58a6ff;
+    box-shadow: 0 0 10px #58a6ff;
+    animation: pulse 1.2s infinite ease-in-out;
+    opacity: 0;
+  }
+
+  @keyframes pulse {
+    0%   { transform: scale(0.9); opacity: 0.3; }
+    50%  { transform: scale(1.1); opacity: 0.9; }
+    100% { transform: scale(0.9); opacity: 0.3; }
+  }
+`;
+document.head.appendChild(jarvisCSS);
