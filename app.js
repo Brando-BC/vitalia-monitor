@@ -1,8 +1,8 @@
 /* ==========================================================
-   VITALIA MONITOR – BROCK AI 2025
+   VITALIA MONITOR – BROCK AI 2025 (VERSIÓN ESTABLE FINAL)
    ========================================================== */
 
-console.log("VitalIA + Brock cargado correctamente...");
+console.log("VitalIA + Brock inicializado correctamente...");
 
 /* ==========================================================
    UTILIDADES
@@ -34,13 +34,9 @@ async function obtenerDatos() {
 function actualizarTarjetas(v) {
   if (!v || !v.heart_rate) return;
 
-  const hrVal = document.getElementById("hr-value");
-  const spoVal = document.getElementById("spo2-value");
-  const tempVal = document.getElementById("temp-value");
-
-  hrVal.textContent = `${v.heart_rate} bpm`;
-  spoVal.textContent = `${v.spo2} %`;
-  tempVal.textContent = `${v.temperature.toFixed(1)} °C`;
+  document.getElementById("hr-value").textContent = `${v.heart_rate} bpm`;
+  document.getElementById("spo2-value").textContent = `${v.spo2} %`;
+  document.getElementById("temp-value").textContent = `${v.temperature.toFixed(1)} °C`;
 
   const c_hr = document.getElementById("card-hr");
   const c_spo2 = document.getElementById("card-spo2");
@@ -55,12 +51,12 @@ function actualizarTarjetas(v) {
   else if (v.heart_rate <= 100) c_hr.classList.add("estado-verde");
   else c_hr.classList.add("estado-rojo");
 
-  // SpO2 (ajustado 3,276 msnm)
+  // SpO2 (ajustado 3276 msnm)
   if (v.spo2 >= 87 && v.spo2 <= 96) c_spo2.classList.add("estado-verde");
   else if (v.spo2 >= 83 && v.spo2 <= 86) c_spo2.classList.add("estado-amarillo");
   else c_spo2.classList.add("estado-rojo");
 
-  // Temperatura
+  // Temp
   if (v.temperature >= 36.0 && v.temperature <= 37.0) c_temp.classList.add("estado-verde");
   else if (v.temperature <= 38.0) c_temp.classList.add("estado-amarillo");
   else c_temp.classList.add("estado-rojo");
@@ -71,25 +67,25 @@ function actualizarTarjetas(v) {
    ========================================================== */
 
 function generarDiagnosticoLocal(v) {
-  if (!v) return "Aún no tengo datos suficientes.";
+  if (!v) return "Aún no tengo suficientes datos para evaluar.";
 
   let msg = [];
 
-  if (v.heart_rate < 60) msg.push("El ritmo cardíaco está por debajo de lo normal.");
-  else if (v.heart_rate <= 100) msg.push("El ritmo cardíaco está en el rango normal.");
+  if (v.heart_rate < 60) msg.push("El ritmo cardíaco está bajo.");
+  else if (v.heart_rate <= 100) msg.push("El ritmo cardíaco está dentro de lo normal.");
   else msg.push("El ritmo cardíaco está elevado.");
 
-  if (v.spo2 >= 87 && v.spo2 <= 96) msg.push("La oxigenación es normal para esta altitud.");
-  else if (v.spo2 >= 83) msg.push("Hay signos de hipoxia leve.");
+  if (v.spo2 >= 87) msg.push("La oxigenación es normal para esta altitud.");
+  else if (v.spo2 >= 83) msg.push("Hay hipoxia leve.");
   else if (v.spo2 >= 79) msg.push("Hay hipoxia moderada.");
-  else msg.push("Oxigenación muy baja, podría ser hipoxia severa.");
+  else msg.push("Hipoxia severa detectada.");
 
   const t = v.temperature;
-  if (t >= 36.0 && t <= 37.0) msg.push("La temperatura es normal.");
-  else if (t <= 38.0) msg.push("Hay febrícula.");
-  else if (t <= 38.4) msg.push("Hay fiebre leve.");
-  else if (t <= 39.0) msg.push("Hay fiebre moderada.");
-  else msg.push("Hay fiebre alta.");
+  if (t >= 36.0 && t <= 37.0) msg.push("Temperatura corporal normal.");
+  else if (t <= 38.0) msg.push("Febrícula.");
+  else if (t <= 38.4) msg.push("Fiebre leve.");
+  else if (t <= 39.0) msg.push("Fiebre moderada.");
+  else msg.push("Fiebre alta.");
 
   return msg.join(" ");
 }
@@ -99,7 +95,7 @@ function actualizarDiagnosticoTexto(v) {
 }
 
 /* ==========================================================
-   GRÁFICAS
+   GRAFICAS
    ========================================================== */
 
 let datosHR = [], datosSpO2 = [], datosTemp = [];
@@ -131,23 +127,24 @@ function updateChart(g, arr, val) {
    ========================================================== */
 
 async function loop() {
-  const data = await obtenerDatos();
-  if (!data) return;
+  const v = await obtenerDatos();
+  if (!v) return;
 
-  actualizarTarjetas(data);
-  actualizarDiagnosticoTexto(data);
-
-  updateChart(gHR, datosHR, data.heart_rate);
-  updateChart(gSpO2, datosSpO2, data.spo2);
-  updateChart(gTemp, datosTemp, data.temperature);
+  actualizarTarjetas(v);
+  actualizarDiagnosticoTexto(v);
+  updateChart(gHR, datosHR, v.heart_rate);
+  updateChart(gSpO2, datosSpO2, v.spo2);
+  updateChart(gTemp, datosTemp, v.temperature);
 }
+
 setInterval(loop, 2000);
 
 /* ==========================================================
-   CHAT DE TEXTO
+   CHAT IA
    ========================================================== */
 
 const chatWindow = document.getElementById("chat-window");
+const chatInput = document.getElementById("chat-input");
 
 function addMessage(text, from = "bot") {
   const div = document.createElement("div");
@@ -169,12 +166,13 @@ async function enviarAIA(texto) {
     addMessage(reply, "bot");
     hablar(reply);
   } catch (e) {
-    addMessage("Error al contactar a Brock.", "bot");
+    addMessage("Error de conexión con Brock.", "bot");
   }
 }
 
 document.getElementById("chat-form").addEventListener("submit", e => {
   e.preventDefault();
+
   const msg = chatInput.value.trim();
   if (!msg) return;
 
@@ -184,7 +182,7 @@ document.getElementById("chat-form").addEventListener("submit", e => {
 });
 
 /* ==========================================================
-   ELEMENTOS DEL ASISTENTE (ARREGLADO)
+   ELEMENTOS DEL ASISTENTE (JARVIS)
    ========================================================== */
 
 const estadoElem = document.getElementById("asistente-estado");
@@ -205,7 +203,7 @@ function setEstado(texto, clase) {
 }
 
 /* ==========================================================
-   TTS (HABLAR)
+   TTS – VOZ MASCULINA
    ========================================================== */
 
 let speaking = false;
@@ -215,7 +213,6 @@ function vozMasculina() {
   const male = voces.find(v =>
     v.lang.startsWith("es") &&
     (v.name.toLowerCase().includes("hombre") ||
-     v.name.toLowerCase().includes("male") ||
      v.name.toLowerCase().includes("miguel") ||
      v.name.toLowerCase().includes("carlos"))
   );
@@ -232,22 +229,23 @@ function hablar(texto) {
 
   const u = new SpeechSynthesisUtterance(cleanText(texto));
   u.lang = "es-ES";
-  u.pitch = 0.9;
-  u.rate = 1.03;
+  u.pitch = 0.92;
+  u.rate = 1.05;
   u.voice = vozMasculina();
 
   u.onend = () => {
     speaking = false;
-    setEstado("Brock está escuchando…", "asistente-escuchando");
-
-    if (escuchando) setTimeout(() => reconocimiento.start(), 250);
+    if (escuchando) {
+      setEstado("Brock está escuchando…", "asistente-escuchando");
+      setTimeout(() => reconocimiento.start(), 200);
+    }
   };
 
   speechSynthesis.speak(u);
 }
 
 /* ==========================================================
-   STT (RECONOCIMIENTO DE VOZ)
+   STT – RECONOCIMIENTO DE VOZ
    ========================================================== */
 
 let reconocimiento = null;
@@ -264,7 +262,7 @@ function initRecon() {
     setEstado("Brock está escuchando… (di OK BROCK)", "asistente-escuchando");
   };
 
-  reconocimiento.onerror = e => console.log("Error:", e);
+  reconocimiento.onerror = e => console.warn("Error STT:", e);
 
   reconocimiento.onend = () => {
     if (escuchando && !speaking) reconocimiento.start();
@@ -297,7 +295,7 @@ function initRecon() {
 }
 
 /* ==========================================================
-   ACTIVAR / DESACTIVAR ESCUCHA
+   ACTIVAR / DESACTIVAR
    ========================================================== */
 
 function activarEscucha() {
