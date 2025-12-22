@@ -1,113 +1,215 @@
-/******************************************************
- * VITALIA ESP32 — ENVÍO DE SIGNOS VITALES (RANDOM)
- * 
- * Envía cada 2 segundos:
- * - Ritmo cardíaco (60–110 bpm)
- * - SpO2 (94–99%)
- * - Temperatura (36.0–38.0 °C)
- *
- * POST en formato JSON → /api/vitals
- ******************************************************/
-
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include <WiFiClientSecure.h>
 
-// =============================
-// CONFIGURACIÓN WIFI
-// =============================
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+#include <Adafruit_MLX90614.h>
+
+#include <WiFiUdp.h>
+#include <NTPClient.h>
+
+// =====================
+// DISPLAY CONFIG
+// =====================
+#define OLED_WIDTH 128
+#define OLED_HEIGHT 64
+#define OLED_ADDR   0x3C
+
+Adafruit_MLX90614 mlx = Adafruit_MLX90614();
+Adafruit_SSD1306 display(OLED_WIDTH, OLED_HEIGHT, &Wire, -1);
+
+// =====================
+// WIFI CONFIG
+// =====================
 const char* ssid     = "POCO X5 Pro 5G";
 const char* password = "brando13";
 
-// =============================
-// URL DEL SERVIDOR (LOCAL O RENDER)
-// =============================
+// =====================
+// SERVER URL
+// =====================
+String serverURL = "https://vitalia-monitor.onrender.com/api/vitals";
 
-// LOCAL:
-// String serverURL = "http://192.168.1.50:3000/api/vitals";
+WiFiClientSecure secureClient;
 
-// RENDER (se agregará luego):
-String serverURL = "https://vitalia-monitor.onrender.com";
+// =====================
+// NTP CLIENT
+// =====================
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP, "pool.ntp.org", -18000, 60000);
 
-// =============================
-// FUNCIÓN DE DATOS RANDOM
-// =============================
-int generarHR() {
-  return random(60, 111);    // 60–110 bpm
-}
+// =====================
+// TIMERS
+// =====================
+unsigned long previousMillis = 0;
+const unsigned long intervaloEnvio = 2000;
 
-int generarSpO2() {
-  return random(94, 100);    // 94–99%
-}
+bool estadoAPI = false;
 
+// =====================
+// RANDOM DATA
+// =====================
+int generarHR() { return 60 + random(0, 51); }
+int generarSpO2() { return 94 + random(0, 6); }
 float generarTemp() {
-  return random(360, 380) / 10.0;   // 36.0–38.0 °C
+
+  float tSkin = mlx.readObjectTempC();       // °C directo del sensor
+  float tRoom = mlx.readAmbientTempC();      // soporte compensación
+
+  // FILTRO ANTI RUIDO (evita saltos electrónicos)
+  static float filtro = tSkin;
+  filtro = 0.85 * filtro + 0.15 * tSkin;
+
+  // CALIBRACIÓN PARA MUÑECA
+  float tCorregida = filtro + 1.4;
+
+  return tCorregida;
 }
 
+// =====================
+// WIFI HANDLER
+// =====================
+void conectarWiFi() {
+  if (WiFi.status() == WL_CONNECTED) return;
+  WiFi.begin(ssid, password);
+  unsigned long start = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - start < 6000) {
+    delay(200);
+  }
+}
+
+// =====================
+// DRAW SCREEN
+// =====================
+void pantallaSmartwatch(int hr, int spo2, float temp)
+{
+  display.clearDisplay();
+  display.setTextColor(SSD1306_WHITE);
+
+  display.setTextSize(1);
+  display.setCursor(8, 0);
+  display.print("VITALIA SMARTWATCH");
+
+  display.setCursor(0, 10);
+  display.print("------------------------");
+
+  // HR + SpO2
+  display.setCursor(0, 22);
+  display.print("<3: ");
+  display.print(hr);
+  display.print(" bpm");
+
+  display.setCursor(75, 22);
+  display.print("O2: ");
+  display.print(spo2);
+  display.print(" %");
+
+  // TEMP + WIFI STATUS
+  display.setCursor(0, 34);
+  display.print("T: ");
+  display.print(temp);
+  display.print(" C");
+
+  display.setCursor(75, 34);
+  display.print("WiFi:");
+  display.print(WiFi.status() == WL_CONNECTED ? "OK" : "X");
+
+  // API STATUS
+  display.setCursor(0, 46);
+  display.print("API: ");
+  display.print(estadoAPI ? "OK" : "ERR");
+
+  // TIME + DATE
+  display.setCursor(0, 56);
+  display.print(timeClient.getFormattedTime());
+
+  int dia  = (timeClient.getEpochTime() % 2592000) / 86400 + 1;
+  int mes  = ((timeClient.getEpochTime() / 2592000) % 12) + 1;
+  int anio = 1970 + timeClient.getEpochTime() / 31556926;
+
+  display.setCursor(75, 56);
+  display.print(dia);
+  display.print("/");
+  display.print(mes);
+  display.print("/");
+  display.print(anio);
+
+  display.display();
+}
+
+// =====================
+// POST JSON
+// =====================
 void enviarDatos() {
+
+  conectarWiFi();
+
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("❌ No conectado a WiFi");
+    estadoAPI = false;
     return;
   }
 
+  secureClient.setInsecure();
   HTTPClient http;
 
-  http.begin(serverURL);
+  http.begin(secureClient, serverURL);
   http.addHeader("Content-Type", "application/json");
 
-  int hr   = generarHR();
-  int spo2 = generarSpO2();
+  int hr     = generarHR();
+  int spo2   = generarSpO2();
   float temp = generarTemp();
 
-  // Crear JSON
-  String jsonData = "{\"heart_rate\":" + String(hr) +
-                    ",\"spo2\":" + String(spo2) +
-                    ",\"temperature\":" + String(temp) + "}";
+  String jsonData =
+      "{\"heart_rate\":" + String(hr) +
+      ",\"spo2\":" + String(spo2) +
+      ",\"temperature\":" + String(temp) + "}";
 
-  Serial.println("📤 Enviando JSON:");
-  Serial.println(jsonData);
+  int code = http.POST(jsonData);
 
-  // Enviar datos
-  int httpResponseCode = http.POST(jsonData);
-
-  if (httpResponseCode > 0) {
-    Serial.print("🟢 Servidor respondió: ");
-    Serial.println(httpResponseCode);
-  } else {
-    Serial.print("❌ Error POST: ");
-    Serial.println(httpResponseCode);
-  }
-
+  estadoAPI = (code == 200);
   http.end();
+
+  pantallaSmartwatch(hr, spo2, temp);
 }
 
+// =====================
+// SETUP
+// =====================
 void setup() {
+
   Serial.begin(115200);
-  delay(1000);
+  randomSeed(esp_random());
 
-  Serial.println("\n===== VITALIA ESP32 =====");
-  Serial.println("Conectando a WiFi...");
+  WiFi.mode(WIFI_STA);
+  conectarWiFi();
 
-  WiFi.begin(ssid, password);
+  Wire.begin(21, 22);
+  display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDR);
+  display.clearDisplay();
+  display.display();
 
-  int intentos = 0;
-  while (WiFi.status() != WL_CONNECTED && intentos < 20) {
-    delay(500);
-    Serial.print(".");
-    intentos++;
-  }
+  timeClient.begin();
+  timeClient.update();
 
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("\n🟢 WiFi conectado");
-    Serial.print("IP: ");
-    Serial.println(WiFi.localIP());
-  } else {
-    Serial.println("\n❌ No se pudo conectar al WiFi");
-  }
-
-  randomSeed(analogRead(0)); // Semilla de aleatorios
+  if (!mlx.begin()) {
+  Serial.println("MLX90614 no encontrado!");
+  while (1);
 }
 
+}
+
+// =====================
+// LOOP
+// =====================
 void loop() {
-  enviarDatos();
-  delay(1000);  // Cada 2 segundos
+
+  timeClient.update();
+
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - previousMillis >= intervaloEnvio) {
+    previousMillis = currentMillis;
+    enviarDatos();
+  }
 }
