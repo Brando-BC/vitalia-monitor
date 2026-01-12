@@ -3,7 +3,6 @@ import cors from "cors";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
-import fetch from "node-fetch";
 
 dotenv.config();
 
@@ -104,7 +103,8 @@ Responde de forma humana, clara y confiable.
 
     const data = await response.json();
     res.json({ reply: data.choices[0].message.content });
-  } catch {
+  } catch (e) {
+    console.error(e);
     res.json({ reply: "Hubo un problema con la IA. Intenta nuevamente." });
   }
 });
