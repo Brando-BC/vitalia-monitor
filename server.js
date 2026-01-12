@@ -56,12 +56,11 @@ function generarDiagnostico(v) {
   else if (spo2 >= 79) msg.push("La oxigenación sugiere hipoxia moderada.");
   else msg.push("Oxigenación compatible con hipoxia severa.");
 
-  if (temp >= 36.0 && temp <= 37.0) msg.push("La temperatura corporal está en el rango normal.");
-  else if (temp <= 38.0) msg.push("Hay febrícula.");
+  if (temp >= 36 && temp <= 37) msg.push("La temperatura corporal está en el rango normal.");
+  else if (temp <= 38) msg.push("Hay febrícula.");
   else if (temp <= 38.4) msg.push("Hay fiebre leve.");
-  else if (temp <= 39.0) msg.push("Hay fiebre moderada.");
-  else if (temp > 39.0) msg.push("Hay fiebre alta.");
-  else msg.push("La temperatura está por debajo del rango normal.");
+  else if (temp <= 39) msg.push("Hay fiebre moderada.");
+  else msg.push("Hay fiebre alta.");
 
   return msg.join(" ");
 }
@@ -71,8 +70,7 @@ app.post("/api/chat", async (req, res) => {
   const diagnostico = generarDiagnostico(lastVitals);
 
   const prompt = `
-Eres BROCK, un asistente virtual masculino, cálido, natural y profesional.
-Hablas como una persona real, sin listas ni símbolos.
+Eres BROCK, un asistente virtual masculino, humano y profesional.
 
 Ritmo cardíaco: ${lastVitals.heart_rate}
 Oxigenación: ${lastVitals.spo2}
@@ -81,10 +79,10 @@ Temperatura: ${lastVitals.temperature}
 Evaluación automática:
 ${diagnostico}
 
-Mensaje del usuario:
+Usuario:
 ${message}
 
-Responde de forma humana, clara y confiable.
+Responde de forma clara y natural.
 `;
 
   try {
@@ -102,10 +100,16 @@ Responde de forma humana, clara y confiable.
     });
 
     const data = await response.json();
+
+    if (!data.choices || !data.choices.length) {
+      res.json({ reply: "No pude generar una respuesta en este momento." });
+      return;
+    }
+
     res.json({ reply: data.choices[0].message.content });
+
   } catch (e) {
-    console.error(e);
-    res.json({ reply: "Hubo un problema con la IA. Intenta nuevamente." });
+    res.json({ reply: "Error al conectar con la IA." });
   }
 });
 
