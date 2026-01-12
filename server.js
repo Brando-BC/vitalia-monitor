@@ -3,8 +3,10 @@ import cors from "cors";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import OpenAI from "openai";
+
 dotenv.config();
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -14,8 +16,10 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(json({ limit: "1mb" }));
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const modelo = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+// 🔹 OpenAI GPT
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 let lastVitals = {
   heart_rate: null,
@@ -59,33 +63,25 @@ function generarDiagnostico(v) {
 
   if (spo2 >= 87 && spo2 <= 96) {
     msg.push("La oxigenación es normal para esta altitud.");
-  }
-  else if (spo2 >= 83 && spo2 <= 86) {
+  } else if (spo2 >= 83 && spo2 <= 86) {
     msg.push("Hay signos de hipoxia leve.");
-  }
-  else if (spo2 >= 79 && spo2 <= 82) {
+  } else if (spo2 >= 79 && spo2 <= 82) {
     msg.push("La oxigenación sugiere hipoxia moderada.");
-  }
-  else if (spo2 < 79) {
+  } else if (spo2 < 79) {
     msg.push("Oxigenación compatible con hipoxia severa. Escucha tu cuerpo y considera descansar.");
   }
 
   if (temp >= 36.0 && temp <= 37.0) {
     msg.push("La temperatura corporal está en el rango normal.");
-  }
-  else if (temp >= 37.1 && temp <= 38.0) {
+  } else if (temp <= 38.0) {
     msg.push("Hay febrícula.");
-  }
-  else if (temp >= 38.1 && temp <= 38.4) {
+  } else if (temp <= 38.4) {
     msg.push("Hay fiebre leve.");
-  }
-  else if (temp >= 38.5 && temp <= 39.0) {
+  } else if (temp <= 39.0) {
     msg.push("Hay fiebre moderada.");
-  }
-  else if (temp > 39.0) {
+  } else if (temp > 39.0) {
     msg.push("Hay fiebre alta. Se recomienda vigilancia cercana.");
-  }
-  else if (temp < 36.0) {
+  } else if (temp < 36.0) {
     msg.push("La temperatura está por debajo del rango normal.");
   }
 
@@ -99,46 +95,38 @@ app.post("/api/chat", async (req, res) => {
 
   const prompt = `
 Eres BROCK, un asistente virtual masculino, cálido, natural y profesional.
-Hablas como una persona real: natural, sin símbolos, sin listas, sin markdown
-y sin asteriscos. Tu tono es calmado y confiable.
+Hablas como una persona real, sin símbolos, sin listas y sin formatos.
 
-INSTRUCCIONES DE COMPORTAMIENTO:
+Si la pregunta es sobre salud, analiza los signos vitales con seriedad,
+claridad y tranquilidad, como un asistente médico humano.
 
-• Si la pregunta es sobre salud, analiza los signos vitales y responde con
-  seriedad, claridad y tranquilidad, como un asistente médico humano.
+Si la pregunta no es sobre salud, responde igual pero menciona de forma
+natural que tu especialidad es la salud.
 
-• Si la pregunta NO es sobre salud, también puedes responder, pero menciona
-  de manera natural que tu especialidad es la salud antes de continuar.
-
-• Habla siempre como si estuvieras teniendo una conversación real. 
-  Nada de listas, nada de guiones, nada de formatos raros.
-
-• Reformula cualquier frase que parezca escrita por una IA. 
-  Suena humano, masculino y profesional.
-
-------------------------------------------------
-DATOS DEL PACIENTE:
+Datos del paciente:
 Ritmo cardíaco: ${lastVitals.heart_rate}
 Oxigenación: ${lastVitals.spo2}
 Temperatura: ${lastVitals.temperature}
 
 Evaluación automática:
 ${diagnostico}
-------------------------------------------------
 
 Mensaje del usuario:
 ${message}
 
 Responde como Brock, de forma humana, cálida y profesional.
-  `;
+`;
 
   try {
-    const result = await modelo.generateContent(prompt);
-    const text = result.response.text();
-    res.json({ reply: text });
+    const response = await openai.responses.create({
+      model: "gpt-4.1-mini",
+      input: prompt,
+    });
+
+    res.json({ reply: response.output_text });
 
   } catch (error) {
-    console.error("❌ Error con Gemini:", error);
+    console.error("❌ Error con GPT:", error);
     res.json({ reply: "Hubo un problema con la IA. Intenta nuevamente." });
   }
 });
