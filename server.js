@@ -181,28 +181,111 @@ app.post("/api/chat", (req, res) => {
   const text = req.body.message.toLowerCase();
   let reply = "";
 
-  if (contiene(text, ["como estoy", "mi estado", "evalua", "estado"])) {
+  if (contiene(text, ["Cómo estoy", "Cómo estoy hoy", "Cuál es mi estado", "Cómo se encuentra mi cuerpo", "Estoy bien", "Mi estado es normal", "Qué tal están mis signos", "Evalúame"
+                     , "Dime cómo estoy", "Cómo me siento según mis signos", "Mi cuerpo está estable", "Todo está bien conmigo"])) {
     reply = generarDiagnostico(lastVitals);
   }
-  else if (contiene(text, ["riesgo", "peligro", "grave"])) {
+  else if (contiene(text, ["Cuál es mi riesgo", "Tengo algún riesgo", "Mi estado es peligroso", "Es grave lo que tengo", "Estoy en peligro", "Qué tan serio es mi estado", "Debo preocuparme",
+                     "Mi condición es estable", "Mi riesgo es alto", "Mi riesgo es bajo", "Mi estado es crítico", "Hay algo que no esté bien", "grave"])) {
     reply = `Tu nivel de riesgo actual es ${evaluarRiesgo(lastVitals)}.`;
   }
-  else if (contiene(text, ["alerta", "urgente", "emergencia"])) {
+  else if (contiene(text, [
+  "Hay alguna alerta",
+  "Tengo una alerta",
+  "Hay algo urgente",
+  "Necesito ayuda médica",
+  "Debo ir al médico",
+  "Hay algo anormal",
+  "Hay alguna advertencia",
+  "Es una emergencia",
+  "Debo buscar ayuda",
+  "Mi situación es urgente",
+  "Hay peligro ahora"
+]
+)) {
     reply = generarAlerta(lastVitals);
   }
-  else if (contiene(text, ["recomend", "que hago", "qué debo hacer"])) {
+  else if (contiene(text, [
+  "Qué debo hacer",
+  "Qué me recomiendas",
+  "Dame recomendaciones",
+  "Cómo debo cuidarme",
+  "Qué puedo hacer ahora",
+  "Qué no debo hacer",
+  "Debo descansar",
+  "Puedo hacer ejercicio",
+  "Puedo salir",
+  "Puedo trabajar",
+  "Debo evitar esfuerzos",
+  "Puedo caminar",
+  "Debo quedarme en reposo"
+]
+)) {
     reply = generarRecomendaciones(lastVitals);
   }
-  else if (contiene(text, ["comer", "aliment", "dieta"])) {
+  else if (contiene(text, [
+  "Qué puedo comer",
+  "Qué no debo comer",
+  "Dame recomendaciones de comida",
+  "Qué alimentos me ayudan",
+  "Debo evitar algo en la comida",
+  "Puedo tomar café",
+  "Puedo tomar alcohol",
+  "Qué debo beber",
+  "Qué comer hoy",
+  "Qué alimentos me recomiendas",
+  "Puedo comer normal",
+  "Debo cambiar mi dieta"
+]
+)) {
     reply = recomendacionesAlimentacion(lastVitals);
   }
-  else if (contiene(text, ["historial", "evolucion", "cambios"])) {
+  else if (contiene(text, [
+  "Muéstrame mi historial",
+  "Historial de signos vitales",
+  "Cómo he estado hoy",
+  "He mejorado",
+  "He empeorado",
+  "Evolución de mis signos",
+  "Cambios en mis valores",
+  "Comparación de hoy",
+  "Cómo han cambiado mis signos",
+  "Mis valores están subiendo o bajando",
+  "Cómo he evolucionado"
+]
+)) {
     reply = `Tengo registrados ${vitalsHistory.length} registros recientes de tus signos vitales.`;
   }
-  else if (contiene(text, ["mejorando", "empeorando", "tendencia", "predic"])) {
+  else if (contiene(text, [
+  "Voy mejorando",
+  "Voy empeorando",
+  "Cómo voy",
+  "Qué tendencia tengo",
+  "Mi estado está mejorando",
+  "Cómo estaré si sigo así",
+  "Estoy estable",
+  "Hay progreso",
+  "Mi salud está mejorando",
+  "Voy por buen camino",
+  "Qué pasará si sigo igual"
+]
+)) {
     reply = prediccionSimple();
   }
-  else if (contiene(text, ["resumen", "todo", "completo"])) {
+  else if (contiene(text, [
+  "Dame un resumen",
+  "Resumen completo",
+  "Dame todo",
+  "Todo",
+  "Resumen de mi estado",
+  "Informe general",
+  "Evaluación completa",
+  "Estado general completo",
+  "Resumen clínico",
+  "Informe de salud",
+  "Síntesis de mi estado"
+]
+)) {
     reply = `
 ${generarDiagnostico(lastVitals)}
 ${generarAlerta(lastVitals)}
